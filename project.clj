@@ -1,4 +1,4 @@
-(def xt-version (or (System/getenv "XTDB_VERSION") "dev-SNAPSHOT"))
+(def xt-version (or (System/getenv "XTDB_VERSION") "1.23.0.nyaya"))
 
 (defproject com.xtdb/xtdb-dev xt-version
   :url "https://github.com/xtdb/xtdb"

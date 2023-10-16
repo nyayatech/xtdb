@@ -13,7 +13,7 @@
                  [org.lwjgl/lwjgl-lmdb "3.3.1" :classifier "natives-macos-arm64" :native-prefix ""]
                  [org.lwjgl/lwjgl-lmdb "3.3.1"]]
 
-  :plugins [[lein-javadoc "0.3.0"]
+  :plugins [
             [lein-parent "0.3.8"]]
 
   :parent-project {:path "../../project.clj"
@@ -32,15 +32,6 @@
                   "-Werror"
                   "-proc:none"]
 
-  :javadoc-opts {:package-names ["xtdb"]
-                 :output-dir "target/javadoc/out"
-                 :additional-args ["-windowtitle" "XTDB LMDB Javadoc"
-                                   "-quiet"
-                                   "-Xdoclint:none"
-                                   "-link" "https://docs.oracle.com/javase/8/docs/api/"
-                                   "-link" "https://www.javadoc.io/static/org.clojure/clojure/1.10.3"]}
 
   :classifiers {:sources {:prep-tasks ^:replace []}
-                :javadoc {:prep-tasks ^:replace ["javadoc"]
-                          :omit-source true
-                          :filespecs ^:replace [{:type :path, :path "target/javadoc/out"}]}})
+                })

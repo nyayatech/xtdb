@@ -17,8 +17,9 @@ target/
 /.testing-mysql.edn
 docs/build/
 .calva/
-.lsp/.cache
-.lsp/sqlite.db
+**/.lsp/.cache
+**/.lsp/sqlite.db
+**/.clj-kondo
 
 xtdb-javadoc/
 
