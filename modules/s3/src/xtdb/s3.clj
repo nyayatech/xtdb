@@ -16,18 +16,19 @@
            [software.amazon.awssdk.services.s3.model CommonPrefix GetObjectRequest ListObjectsV2Request ListObjectsV2Response NoSuchKeyException PutObjectRequest S3Object]
            software.amazon.awssdk.services.s3.S3AsyncClient))
 
-(defn ^:no-doc put-objects [{:keys [^S3Configurator configurator ^S3AsyncClient client bucket prefix]} objs]
-  (->> (for [[path ^AsyncRequestBody request-body] objs]
-         (.putObject client
-                     (-> (PutObjectRequest/builder)
-                         (.bucket bucket)
-                         (.key (str prefix path))
-                         (->> (.configurePut configurator))
-                         ^PutObjectRequest (.build))
-                     request-body))
-       vec
-       (run! (fn [^CompletableFuture req]
-               (.get req)))))
+(defn ^:no-doc put-objects
+  [{:keys [^S3Configurator configurator ^S3AsyncClient client bucket prefix]} objs]
+  (let [objs (->> (for [[path ^AsyncRequestBody request-body] objs]
+                    (.putObject client
+                                (-> (PutObjectRequest/builder)
+                                    (.bucket bucket)
+                                    (.key (str prefix path))
+                                    (->> (.configurePut configurator))
+                                    ^PutObjectRequest (.build))
+                                request-body))
+                  (pmap (fn [^CompletableFuture req] (.get req)))
+                  doall)]
+    (log/info (format "Checkpoint: %s files uploaded" (count objs)))))
 
 (defn ^:no-doc get-objects [{:keys [^S3Configurator configurator ^S3AsyncClient client bucket prefix]} reqs]
   (->> (for [[path ^AsyncResponseTransformer response-transformer] reqs]
