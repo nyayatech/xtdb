@@ -25,7 +25,7 @@ jobs:
         with:
           cli: 1.11.1.1257
 
-      - name: Publish package
-        run: lein deploy github
+      - name: Publish modules packages
+        run: ./lein-sub deploy github
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

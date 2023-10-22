@@ -159,16 +159,10 @@
   :pedantic? :warn
   :global-vars {*warn-on-reflection* true}
 
-  :repositories {"snapshots" {:url "https://s01.oss.sonatype.org/content/repositories/snapshots"}
-                 "github" {:url "https://maven.pkg.github.com/nyayatech/xtdb"
-                           :username "nyayaautomation" :password [:env/GITHUB_TOKEN]}}
-
-  :deploy-repositories {"releases" {:url "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2"
-                                    :username [:gpg :env/sonatype_username]
-                                    :password [:gpg :env/sonatype_password]}
-                        "snapshots" {:url "https://s01.oss.sonatype.org/content/repositories/snapshots"
-                                     :username [:gpg :env/sonatype_username]
-                                     :password [:gpg :env/sonatype_password]}}
+  :deploy-repositories {"github" {:url "https://maven.pkg.github.com/nyayatech/xtdb"
+                                  :sign-releases false
+                                  :username "nyayaautomation"
+                                  :password [:env/GITHUB_TOKEN]}}
 
   :pom-addition ([:developers
                   [:developer
