@@ -10,25 +10,50 @@
            xtdb.s3.S3Configurator
            java.io.Closeable
            java.util.concurrent.CompletableFuture
+           java.util.concurrent.ConcurrentLinkedQueue
            java.util.function.BiFunction
            [software.amazon.awssdk.core.async AsyncRequestBody AsyncResponseTransformer]
            software.amazon.awssdk.core.ResponseBytes
            [software.amazon.awssdk.services.s3.model CommonPrefix GetObjectRequest ListObjectsV2Request ListObjectsV2Response NoSuchKeyException PutObjectRequest S3Object]
            software.amazon.awssdk.services.s3.S3AsyncClient))
 
+(defn pmap*
+  "Like pmap but eager and unordered. It runs n parallel threads
+  (default 100) independently from the chunk size or the number
+  of cores."
+  [f input & [n]]
+  (let [q (ConcurrentLinkedQueue. input)
+        n (or n 100)
+        workers (repeatedly #(future (when-let [item (.poll q)] (f item))))]
+    (loop [workers workers res []]
+      (let [res (into res (keep deref (doall (take n workers))))]
+        (if (.isEmpty q)
+          res
+          (recur (drop n workers) res))))))
+
 (defn ^:no-doc put-objects
   [{:keys [^S3Configurator configurator ^S3AsyncClient client bucket prefix]} objs]
-  (let [objs (->> (for [[path ^AsyncRequestBody request-body] objs]
-                    (.putObject client
-                                (-> (PutObjectRequest/builder)
-                                    (.bucket bucket)
-                                    (.key (str prefix path))
-                                    (->> (.configurePut configurator))
-                                    ^PutObjectRequest (.build))
-                                request-body))
-                  (pmap (fn [^CompletableFuture req] (.get req)))
-                  doall)]
-    (log/info (format "Checkpoint: %s files uploaded" (count objs)))))
+  (let [parallel-requests 1000
+        total-size (->> objs
+                        (map (fn [[_path ^AsyncRequestBody request-body]]
+                               (.get (.contentLength request-body))))
+                        (reduce +))
+        upload-requests (for [[path ^AsyncRequestBody request-body] objs]
+                          (.putObject client
+                                      (-> (PutObjectRequest/builder)
+                                          (.bucket bucket)
+                                          (.key (str prefix path))
+                                          (->> (.configurePut configurator))
+                                          ^PutObjectRequest (.build))
+                                      request-body))]
+    (pmap*
+     (fn [^CompletableFuture req] (.get req))
+     upload-requests
+     parallel-requests)
+    (log/info
+     (format "Checkpoint: %s files uploaded for a total of %s MB"
+             (count upload-requests)
+             (/ total-size 1024. 1024.)))))
 
 (defn ^:no-doc get-objects [{:keys [^S3Configurator configurator ^S3AsyncClient client bucket prefix]} reqs]
   (->> (for [[path ^AsyncResponseTransformer response-transformer] reqs]
