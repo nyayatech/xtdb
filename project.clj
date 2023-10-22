@@ -159,7 +159,9 @@
   :pedantic? :warn
   :global-vars {*warn-on-reflection* true}
 
-  :repositories {"snapshots" {:url "https://s01.oss.sonatype.org/content/repositories/snapshots"}}
+  :repositories {"snapshots" {:url "https://s01.oss.sonatype.org/content/repositories/snapshots"}
+                 "github" {:url "https://maven.pkg.github.com/nyayatech/xtdb"
+                           :username "nyayaautomation" :password [:env/GITHUB_TOKEN]}}
 
   :deploy-repositories {"releases" {:url "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2"
                                     :username [:gpg :env/sonatype_username]
