@@ -2,7 +2,7 @@ name: Deploy
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "1.23.0.nyaya" ]
 
 jobs:
   build:
