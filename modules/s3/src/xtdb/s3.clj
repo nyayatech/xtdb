@@ -31,10 +31,15 @@
           res
           (recur (drop n workers) res))))))
 
+(def checkpoint-concurrency
+  (let [env (System/getenv "CHECKPOINT_CONCURRENCY")]
+    (if (or (nil? env) (string/blank? env))
+      200
+      (Long/valueOf env))))
+
 (defn ^:no-doc put-objects
   [{:keys [^S3Configurator configurator ^S3AsyncClient client bucket prefix]} objs]
-  (let [parallel-requests 1000
-        total-size (->> objs
+  (let [total-size (->> objs
                         (map (fn [[_path ^AsyncRequestBody request-body]]
                                (.get (.contentLength request-body))))
                         (reduce +))
@@ -45,15 +50,16 @@
                                           (.key (str prefix path))
                                           (->> (.configurePut configurator))
                                           ^PutObjectRequest (.build))
-                                      request-body))]
-    (pmap*
-     (fn [^CompletableFuture req] (.get req))
-     upload-requests
-     parallel-requests)
-    (log/info
-     (format "Checkpoint: %s files uploaded for a total of %s MB"
-             (count upload-requests)
-             (/ total-size 1024. 1024.)))))
+                                      request-body))
+        start (System/currentTimeMillis)]
+    (pmap* (fn [^CompletableFuture req] (.get req)) upload-requests checkpoint-concurrency)
+    (when (> (count upload-requests) 1)
+      (log/info
+       (format "{\"checkpoint-status\": \"uploaded\", \"total-size-mb\": %.2f, \"file-count\": %s, \"elapsed-time-seconds\": %.2f, \"concurrency\": %s}"
+               (/ total-size 1024. 1024.)
+               (count upload-requests)
+               (/ (- (System/currentTimeMillis) start) 1000.)
+               checkpoint-concurrency)))))
 
 (defn ^:no-doc get-objects [{:keys [^S3Configurator configurator ^S3AsyncClient client bucket prefix]} reqs]
   (->> (for [[path ^AsyncResponseTransformer response-transformer] reqs]
